@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # pnpm must be set up before setup-node so `cache: pnpm` can locate it.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # PureScript and Spago aren't in package.json devDependencies — they're
+      # treated as system tools. Install both globally before any spago/purs
+      # invocation runs (compile, test:purs, build, build:demo).
+      - name: Install PureScript and Spago
+        run: pnpm add -g purescript spago
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify versions
+        run: |
+          purs --version
+          spago --version
+          pnpm --version
+          node --version
+
+      - name: Run tests (PS + JS)
+        run: pnpm test
+
+      - name: Build library and demo
+        run: pnpm all
+
+      - name: Verify build artifacts
+        run: |
+          echo "=== lib/ ==="
+          ls -la lib/
+          echo "=== src/Demo/public/static/ ==="
+          ls -la src/Demo/public/static/

@@ -1,0 +1,34 @@
+package:
+  name: hyperly
+  dependencies:
+    - arrays
+    - assert
+    - console
+    - debug
+    - effect
+    - either
+    - enums
+    - foldable-traversable
+    - foreign-object
+    - integers
+    - maybe
+    - prelude
+    - record
+    - strings
+    - stringutils
+    - transformers
+    - tuples
+    - unsafe-coerce
+    - web-dom
+    - web-events
+    - web-html
+  test:
+    main: Test.Main
+    dependencies:
+      - aff
+      - spec
+      - spec-node
+workspace:
+  packageSet:
+    registry: 76.1.1
+  extraPackages: {}

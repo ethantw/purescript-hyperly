@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "allowUmdGlobalAccess": true,
+    "module": "NodeNext",
+    "esModuleInterop": true,
+    "target": "ESNEXT",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": false,
+    "strict": true,
+    "noImplicitAny": true,
+    "useUnknownInCatchVariables": false,
+    "inlineSourceMap": true,
+    "types": ["node"],
+    "skipLibCheck": true
+  },
+  "ts-node": {
+      "esm": true,
+      "experimentalSpecifierResolution": "node"
+  },
+  "lib": ["esnext"]
+}

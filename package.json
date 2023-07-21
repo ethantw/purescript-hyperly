@@ -1,0 +1,95 @@
+{
+  "name": "hyperly",
+  "description": "Scrape, find and manipulate hypertexts smoothly.",
+  "author": "陳奕鈞 Chen Yijun",
+  "keywords": [
+    "hypertext",
+    "DOM text manipulation",
+    "match",
+    "replace",
+    "client-side",
+    "server-side"
+  ],
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ethantw/purescript-hyperly.git"
+  },
+  "homepage": "https://github.com/ethantw/purescript-hyperly#readme",
+  "bugs": {
+    "url": "https://github.com/ethantw/purescript-hyperly/issues"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "hyperly.d.ts",
+    "js/**/*.d.ts",
+    "lib",
+    "CHANGELOG.md"
+  ],
+  "imports": {
+    "#output/*": "./output-es/*",
+    "#hyperly/fp": "./js/fp/index.js",
+    "#hyperly/*": "./js/*"
+  },
+  "main": "lib/hyperly.js",
+  "types": "hyperly.d.ts",
+  "exports": {
+    ".": {
+      "types": "./hyperly.d.ts",
+      "default": "./lib/hyperly.js"
+    },
+    "./fp": {
+      "types": "./js/fp/index.d.ts",
+      "default": "./lib/hyperly.fp.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "all": "pnpm build && pnpm build:demo",
+    "compile": "spago build",
+    "build": "pnpm compile && purs-backend-es build && NODE_ENV=production node build/rollup/main",
+    "build:demo": "pnpm compile && purs-backend-es build && NODE_ENV=production node build/esbuild/main",
+    "start": "pnpm compile && purs-backend-es build && NODE_ENV=development node build/esbuild/serve",
+    "bench:node": "pnpm build && node src/Demo/benchmark/findAndReplaceDOMText.js",
+    "bench:browser": "pnpm build && node build/esbuild/bench && NODE_ENV=development node build/esbuild/serve",
+    "typecheck": "tsc --noEmit",
+    "test:purs": "NODE_ENV=test spago build && NODE_ENV=test node test/run.js",
+    "test:js": "purs-backend-es build && pnpm typecheck && NODE_ENV=test pnpm exec tsx --test test/ts/index.ts",
+    "test": "pnpm test:purs && pnpm test:js",
+    "prepublishOnly": "pnpm test && pnpm build",
+    "prepack": "node build/swap-readme.js apply",
+    "postpack": "node build/swap-readme.js restore",
+    "release:next": "node build/release.js next",
+    "release:promote": "node build/release.js promote"
+  },
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=9"
+  },
+  "peerDependencies": {
+    "happy-dom": "^20.9.0"
+  },
+  "peerDependenciesMeta": {
+    "happy-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@csstools/normalize.css": "^12.1.1",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-replace": "^6.0.3",
+    "@rollup/plugin-terser": "^1.0.0",
+    "@types/findandreplacedomtext": "^0.4.4",
+    "@types/node": "^25.6.0",
+    "esbuild": "^0.28.0",
+    "findandreplacedomtext": "^0.4.6",
+    "happy-dom": "^20.9.0",
+    "iterator-helpers-polyfill": "^3.0.1",
+    "purs-backend-es": "^1.4.3",
+    "rollup": "^4.60.2",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  }
+}

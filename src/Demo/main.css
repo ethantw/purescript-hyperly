@@ -1,0 +1,70 @@
+@charset "UTF-8";
+
+/* @layer initialize, normalize; */
+@layer normalize, initialize;
+@import url(@csstools/normalize.css) layer(normal);
+
+@layer initialize {
+  :where(:root) {
+    box-sizing: border-box;
+    overflow-x: hidden;
+
+    font-family:
+      Helvetica Neue, Arial,
+      Hiragino Sans, Hiragino Sans GB, YuGothic,
+      system-ui, sans-serif
+    ;
+
+    font-size: 16px;
+    text-underline-offset: .125em;
+  }
+
+  :root :where(*, *::before, *::after) {
+    box-sizing: inherit;
+  }
+
+  :where(body) {
+    margin: 0;
+  }
+
+  :where(h-iss) {
+    font-size: .25em;
+    font-family: monospace;
+  }
+
+  :where(em) {
+    color: rgb(11, 108, 49);
+  }
+}
+
+/* article {
+  margin: 0 auto;
+  padding: 0 .5em 15em;
+  max-width: 40em;
+} */
+
+noscript {
+  & {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    display: flex;
+    padding: 1em;
+    width: 100vw;
+    height: 100vh;
+    font-size: 2rem;
+    font-weight: 200;
+    background-color: rgba(244, 244, 233, .9);
+}
+
+  p {
+    margin: 0;
+  }
+}
+
+h-iss {
+  background-color:rgba(11, 108, 49, .125);
+  font-size: .5em;
+}
+

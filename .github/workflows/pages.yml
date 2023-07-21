@@ -1,0 +1,65 @@
+name: Deploy demo to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Required by actions/deploy-pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Avoid concurrent deploys clobbering each other; let an in-flight deploy
+# finish rather than cancelling it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install PureScript and Spago
+        run: pnpm add -g purescript spago
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `pnpm all` builds the rolled lib + the demo bundle. The benchmark
+      # bundle is built separately because its entry isn't in the demo config
+      # (it imports lib/hyperly.fp.js, which only exists after `pnpm build`).
+      - name: Build demo + benchmark bundles
+        run: |
+          pnpm all
+          node build/esbuild/bench
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: src/Demo/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

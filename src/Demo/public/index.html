@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="initial-scale=1, width=device-width" />
+    <title>Hyperly: Scrape, find and manipulate hypertexts smoothly.</title>
+    <link rel="stylesheet" href="static/demo.css" />
+    <script type="module" defer src="static/demo.js"></script>
+  </head>
+
+  <body id="demo">
+    <article></article>
+
+    <form class="editor">
+      <label>
+        <textarea class="demo" name="demo">
+<h1>
+  Lake Char<w-br></w-br>gogg<w-br></w-br>a<w-br></w-br>gogg<w-br></w-br>man<w-br></w-br>chaugg<w-br></w-br>a<w-br></w-br>gogg<w-br></w-br>chau<w-br></w-br>bun<w-br></w-br>a<w-br></w-br>gung<w-br></w-br>a<w-br></w-br>maugg
+</h1>
+
+<h2><b>IPA:</b> /ˌleɪk tʃɚˈɡɒɡəɡɒɡ ˌmænˈtʃɔːɡəɡɒɡ tʃəˌbʌnəˈɡʌŋɡəmɔːɡ/</h2>
+
+<p>
+  Lake Char&amp;shy;gogg&amp;shy;a&amp;shy;gogg&amp;shy;man&amp;shy;chaugg&amp;shy;a&amp;shy;gogg&amp;shy;chau&amp;shy;bun&amp;shy;a&amp;shy;gung&amp;shy;a&amp;shy;maugg,
+  also known as Webster Lake, is a lake in the town of Webster, Massachusetts.
+  The exaggerated name ‘Lake Char<wbr/>gogg<wbr/>a<wbr/>gogg<wbr/>man<wbr/>chaugg<wbr/>a<wbr/>gogg<wbr/>chau<wbr/>bun<wbr/>a<wbr/>gung<wbr/>a<wbr/>maugg’
+  is a 45-letter word, often cited as one of the longest in the world.
+
+<p>
+  Long words like char&amp;shy;gogg&amp;shy;a&amp;shy;gogg&amp;shy;man&amp;shy;chaugg&amp;shy;a&amp;shy;gogg&amp;shy;chau&amp;shy;bun&amp;shy;a&amp;shy;gung&amp;shy;a&amp;shy;maugg
+  can be hard to typeset. They can be hyphenated at syllable boundaries by
+  inserting <code>wbr</code> elements or <code>&amp;<wbr>shy;</code>. Otherwise,
+  the browser will put the entire word in the same line, and the word might
+  overflow the container, as you see here: ‘Lake
+  Chargoggagoggmanchauggagoggchaubunagungamaugg’.
+        </textarea>
+      </label>
+    </form>
+
+    <form class="hyperly">
+      <label>
+        <input
+          name="pattern"
+          placeholder="Search"
+          value="\bc(?:[a-z\u00AD?]*)g\b"
+          value="char\u00AD?gogg\u00AD?a\u00AD?gogg\u00AD?man\u00AD?chaugg\u00AD?a\u00AD?gogg\u00AD?chau\u00AD?bun\u00AD?a\u00AD?gung\u00AD?a\u00AD?maugg"
+        />
+      </label>
+
+      <div class="detail">
+        <label class="contextlessly">
+          <input type="checkbox" name="contextlessly" />
+          Contextlessly
+        </label>
+
+        <ul class="flags">
+          <li>
+            <label>
+              <input type="checkbox" name="global" checked />
+              Global
+            </label>
+          <li>
+            <label>
+              <input type="checkbox" name="ignore-case" checked />
+              IgnoreCase
+            </label>
+          <li>
+            <label>
+              <input type="checkbox" name="unicode" checked />
+              Unicode
+            </label>
+        </ul>
+      </div>
+
+      <label>
+        Wrap
+        <input
+          name="wrap"
+          placeholder="Wrapper"
+          value="<mark />"
+        />
+      </label>
+
+      <label>
+        <b>Insert</b>
+        <input
+          name="ins-start"
+          placeholder="Start"
+          value=""
+        />
+        <input
+          name="ins-between"
+          placeholder="Between"
+          value=""
+        />
+        <input
+          name="ins-end"
+          placeholder="End"
+          value=""
+        />
+      </label>
+
+      <label>
+        Outer
+        <input type="checkbox" name="boundary" checked />
+        Inner
+      </label>
+
+      <label>
+        Replace
+        <input
+          name="replacement"
+          placeholder="Replacement"
+          value=""
+        />
+      </label>
+
+      <details>
+        <summary>Text contents</summary>
+        <ol class="tc-list"></ol>
+      </details>
+
+      <details>
+        <summary>Matches</summary>
+        <ol class="match-list"></ol>
+      </details>
+    </form>
+
+    <noscript>
+      <p>
+        This page <em>requires</em> JavaScript to work properly.
+      </p>
+    </noscript>
+  </body>
+</html>

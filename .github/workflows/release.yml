@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install PureScript and Spago
+        run: pnpm add -g purescript spago
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build production library
+        run: pnpm build
+
+      - name: Create release assets
+        run: |
+          mkdir -p dist
+          cp lib/hyperly.js lib/hyperly.min.js lib/hyperly.js.map lib/hyperly.min.js.map dist/
+          cp lib/hyperly.fp.js lib/hyperly.fp.min.js lib/hyperly.fp.js.map lib/hyperly.fp.min.js.map dist/
+          cp hyperly.d.ts dist/
+          cp README.md dist/
+          cp LICENSE dist/
+          cp package.json dist/
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
