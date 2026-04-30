@@ -382,6 +382,22 @@ const ms = match(
 )
 ```
 
+#### Composing on top of the defaults
+
+When you want to *extend* a default predicate rather than replace it, import `defaultOptions` and call into it from your override:
+
+```js
+import { defaultOptions, replace } from 'hyperly'
+
+// "All the default boundaries, plus an extra check from a sibling library."
+const isContextElement = (node) =>
+  defaultOptions.isContextElement(node) && hanCssExtraCheck(node)
+
+replace({ isContextElement }, /…/g, '…', root)
+```
+
+`defaultOptions` and `contextlessOptions` are frozen `Required<Options>` records — every predicate is `(node: Node) => boolean`, no `?` to guard. Reassigning a predicate (`defaultOptions.ignore = …`) throws in strict mode.
+
 ### Match semantics — context boundaries
 
 The fundamental purpose of "contextful" mode (the default) is to **prevent matches from spanning across block-element boundaries**. Two adjacent paragraphs are different contexts, and a regex match must live entirely inside one of them:
@@ -819,7 +835,7 @@ interface Options {
 }
 ```
 
-Each callback runs synchronously during DOM traversal and must return a plain `boolean`. Omit any key to inherit the default rule; pass `{}` to use all defaults.
+Each callback runs synchronously during DOM traversal and must return a plain `boolean`. Omit any key to inherit the default rule; pass `{}` to use all defaults. To compose on top of the defaults rather than replace them, import the `defaultOptions` (or `contextlessOptions`) record — see [Composing on top of the defaults](#composing-on-top-of-the-defaults).
 
 #### `ignore(node)` — skip this node entirely
 

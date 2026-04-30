@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 // ── Uncurried (src/js/) ──────────────────────────────────────────────────────
 
 import {
-  html,
+  html, element,
   textContents, contextlessTextContents,
 } from '#hyperly/hyperly.js'
 import { match, matchContextlessly } from '#hyperly/match.js'
@@ -14,6 +14,7 @@ import { transform, transformContextlessly } from '#hyperly/transform.js'
 import { insert, insertContextlessly } from '#hyperly/insert.js'
 import { wrap, wrapContextlessly } from '#hyperly/wrap.js'
 import { revert, revertAll } from '#hyperly/revert.js'
+import { defaultOptions, contextlessOptions } from '#hyperly/options.js'
 
 // ── Curried / fp (mirrors the public 'hyperly/fp' subpath) ───────────────────
 
@@ -395,6 +396,257 @@ describe('fp (curried) — custom options', () => {
     assert.equal(
       html(fpWrap({})(/\b\w+\b/g)('<b />')('foo')),
       '<b>foo</b>',
+    )
+  })
+})
+
+// ── defaultOptions / contextlessOptions ──────────────────────────────────────
+//
+// The four predicates from the PS-side `defaultOptions` / `contextlessOptions`
+// records, surfaced as a frozen, uncurried `Required<Options>` so consumers
+// can compose on top of them. See `js/options.js`.
+
+// Borrow the same happy-dom window hyperly initialised internally (any
+// Element will do — its ownerDocument carries the right Node/Element
+// constructors). Avoids a second `new Window()` and keeps prototype
+// identity consistent with what the operations see.
+const $owner = element('<div></div>').ownerDocument!
+const make = (tag: string, innerHTML?: string): Element => {
+  const el = $owner.createElement(tag)
+  if (innerHTML != null) el.innerHTML = innerHTML
+  return el
+}
+
+describe('defaultOptions — predicate behaviour', () => {
+  it('ignore: <script>, <style>, <head>, comment, empty text → true', () => {
+    assert.equal(defaultOptions.ignore(make('script')), true)
+    assert.equal(defaultOptions.ignore(make('style')), true)
+    assert.equal(defaultOptions.ignore(make('head')), true)
+    assert.equal(defaultOptions.ignore($owner.createComment('x')), true)
+    assert.equal(defaultOptions.ignore($owner.createTextNode('')), true)
+  })
+
+  it('ignore: normal element / non-empty text → false', () => {
+    assert.equal(defaultOptions.ignore(make('div')), false)
+    assert.equal(defaultOptions.ignore(make('p')), false)
+    assert.equal(defaultOptions.ignore($owner.createTextNode('hi')), false)
+  })
+
+  it('isContextElement: <p>, <article>, <br> → true; <span> → false', () => {
+    assert.equal(defaultOptions.isContextElement(make('p')), true)
+    assert.equal(defaultOptions.isContextElement(make('article')), true)
+    assert.equal(defaultOptions.isContextElement(make('br')), true)
+    assert.equal(defaultOptions.isContextElement(make('span')), false)
+  })
+
+  it('hasContextElements: <div><p>…</p></div> → true; <span><em>…</em></span> → false', () => {
+    assert.equal(defaultOptions.hasContextElements(make('div', '<p>x</p>')), true)
+    assert.equal(defaultOptions.hasContextElements(make('span', '<em>x</em>')), false)
+  })
+
+  it('isVoidElement: <br>, <img>, <wbr> → true; <div> → false', () => {
+    assert.equal(defaultOptions.isVoidElement(make('br')), true)
+    assert.equal(defaultOptions.isVoidElement(make('img')), true)
+    assert.equal(defaultOptions.isVoidElement(make('wbr')), true)
+    assert.equal(defaultOptions.isVoidElement(make('div')), false)
+  })
+})
+
+describe('contextlessOptions — uniformly false', () => {
+  const probes: Node[] = [
+    make('p'),
+    make('div', '<p>x</p>'),
+    make('br'),
+    make('script'),
+    $owner.createComment('x'),
+    $owner.createTextNode(''),
+    $owner.createTextNode('hi'),
+  ]
+
+  it('every predicate returns false for every probe', () => {
+    for (const n of probes) {
+      assert.equal(contextlessOptions.ignore(n), false)
+      assert.equal(contextlessOptions.isContextElement(n), false)
+      assert.equal(contextlessOptions.hasContextElements(n), false)
+      assert.equal(contextlessOptions.isVoidElement(n), false)
+    }
+  })
+})
+
+describe('defaultOptions — identity vs. operations called bare', () => {
+  // Drift detector: if the JS-shape `defaultOptions` and the PS-internal
+  // default options ever fall out of sync, this fixture-based round-trip is
+  // what catches it.
+  const fixture =
+    '<article><h1>Foo bar</h1><p>Hello <b>w</b>orld <i>foo</i> bar.</p>' +
+    '<ul><li>foo bar baz</li><li>just foo</li></ul></article>'
+  const re = /\bfoo\b/gi
+
+  it('match: bare === with-defaultOptions', () => {
+    assert.deepEqual(
+      match(re, fixture).map(m => m.captures[0]),
+      match(defaultOptions, re, fixture).map(m => m.captures[0]),
+    )
+  })
+
+  it('replace: bare === with-defaultOptions', () => {
+    assert.equal(
+      html(replace(re, 'X', fixture)),
+      html(replace(defaultOptions, re, 'X', fixture)),
+    )
+  })
+
+  it('transform: bare === with-defaultOptions', () => {
+    const t = (sp: any) => (_m: any) => sp.text.toUpperCase()
+    assert.equal(
+      html(transform(re, t, fixture)),
+      html(transform(defaultOptions, re, t, fixture)),
+    )
+  })
+
+  it('insert: bare === with-defaultOptions', () => {
+    const ins = { start: '[', end: ']' }
+    assert.equal(
+      html(insert(re, ins, fixture)),
+      html(insert(defaultOptions, re, ins, fixture)),
+    )
+  })
+
+  it('wrap: bare === with-defaultOptions', () => {
+    assert.equal(
+      html(wrap(re, '<mark />', fixture)),
+      html(wrap(defaultOptions, re, '<mark />', fixture)),
+    )
+  })
+
+  it('textContents: bare === with-defaultOptions', () => {
+    assert.deepEqual(
+      textContents(fixture),
+      textContents(defaultOptions, fixture),
+    )
+  })
+})
+
+describe('defaultOptions — composition pattern', () => {
+  // The headline use case: build a stricter `isContextElement` on top of the
+  // default. The composition's boundaries must differ observably from the
+  // bare default's — otherwise the override isn't doing anything.
+
+  // Custom predicate: "default boundary AND not <p>". Effectively excludes
+  // <p> from the context list while keeping every other default boundary.
+  const notParagraph: Required<Options>['isContextElement'] = (n) =>
+    defaultOptions.isContextElement(n) && (n as Element).tagName !== 'P'
+
+  // Fixture: <p> followed by loose inline text. With <p> as a boundary
+  // (default), the trailing " world" sits in its own context, so
+  // /hello world/ cannot match across the <p>/text seam. With <p> demoted
+  // (composed), the <p>'s text and the trailing text merge into one
+  // context — the regex matches.
+  const src = '<p>hello</p> world'
+
+  it('bare default: /hello world/ is split across two contexts and does not match', () => {
+    assert.equal(match(/hello world/g, src).length, 0)
+    assert.deepEqual(textContents(src), ['', 'hello', ' world'])
+  })
+
+  it('composed (no <p>): /hello world/ matches because <p> no longer splits the text', () => {
+    const matches = match(
+      { isContextElement: notParagraph },
+      /hello world/g,
+      src,
+    )
+    assert.equal(matches.length, 1, 'the demoted <p> lets the regex span')
+    assert.equal(matches[0].captures[0], 'hello world')
+
+    assert.deepEqual(
+      textContents({ isContextElement: notParagraph }, src),
+      ['hello world'],
+      'demoting <p> collapses the partition into one entry',
+    )
+  })
+
+  it('composed predicate runs cleanly through replace and produces a valid Hype', () => {
+    const result = replace(
+      { isContextElement: notParagraph },
+      /hello world/g,
+      'HW',
+      src,
+    )
+    assert.equal(result.tag, 'Hype')
+    // The replacement happens because the text now reads as one stretch.
+    assert.match(html(result), /HW/)
+  })
+})
+
+describe('defaultOptions — frozen', () => {
+  it('reassigning a predicate throws in strict mode', () => {
+    assert.throws(
+      () => { (defaultOptions as any).ignore = () => true },
+      TypeError,
+    )
+    assert.throws(
+      () => { (contextlessOptions as any).isContextElement = () => true },
+      TypeError,
+    )
+  })
+
+  it('the failed mutation does not change subsequent operation behaviour', () => {
+    const before = html(replace(/foo/g, 'X', '<p>foo</p>'))
+    try { (defaultOptions as any).ignore = () => true } catch {}
+    assert.equal(html(replace(/foo/g, 'X', '<p>foo</p>')), before)
+  })
+})
+
+// ── Type-level assertions ────────────────────────────────────────────────────
+//
+// These never run; they exist to make the typechecker enforce the documented
+// shape. If `defaultOptions` slips back to plain `Options` (with optional
+// keys), the `Required` check below fails to compile, and `pnpm typecheck`
+// rejects the change.
+
+type _Equals<X, Y> =
+  (<T>() => T extends X ? 1 : 2) extends (<T>() => T extends Y ? 1 : 2)
+    ? true
+    : false
+type _Assert<T extends true> = T
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _DefaultIsRequired = _Assert<_Equals<typeof defaultOptions, Required<Options>>>
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _ContextlessIsRequired = _Assert<_Equals<typeof contextlessOptions, Required<Options>>>
+
+// Composition pattern compiles cleanly: the `&&` produces a `boolean` because
+// every predicate on `Required<Options>` is guaranteed-defined.
+const _composedTypeCheck: Required<Options>['isContextElement'] = (n) =>
+  defaultOptions.isContextElement(n) && (n as Element).tagName === 'P'
+void _composedTypeCheck
+
+describe('defaultOptions — idempotent merge', () => {
+  // Convert-back round-trip: passing the JS-shape defaultOptions back through
+  // the operations' option converter must not double-wrap. If it did, the PS
+  // side would call the predicates with `node` and get a function back rather
+  // than a boolean — the result would diverge from the bare-call output.
+  const fixture =
+    '<article><h1>foo</h1><p>foo bar <b>foo</b></p><ul><li>foo</li></ul></article>'
+
+  it('replace(defaultOptions, …) === replace(…)', () => {
+    assert.equal(
+      html(replace(defaultOptions, /foo/g, 'X', fixture)),
+      html(replace(/foo/g, 'X', fixture)),
+    )
+  })
+
+  it('wrap(defaultOptions, …) === wrap(…)', () => {
+    assert.equal(
+      html(wrap(defaultOptions, /foo/g, '<mark />', fixture)),
+      html(wrap(/foo/g, '<mark />', fixture)),
+    )
+  })
+
+  it('match(defaultOptions, …) yields exactly the same .captures[0]s', () => {
+    assert.deepEqual(
+      match(defaultOptions, /foo/g, fixture).map(m => m.captures[0]),
+      match(/foo/g, fixture).map(m => m.captures[0]),
     )
   })
 })

@@ -5,6 +5,12 @@ on:
     tags:
       - 'v*'
 
+# softprops/action-gh-release needs contents:write to create the Release.
+# GitHub's default GITHUB_TOKEN is read-only for new repos / workflows since
+# 2023; without this block the action gets 403 from the REST endpoint.
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Build and Release

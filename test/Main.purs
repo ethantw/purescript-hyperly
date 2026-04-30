@@ -12,6 +12,7 @@ import Test.HTML (testHTML)
 import Test.Hyperly (testHyperly)
 import Test.Insert (testInsert)
 import Test.Match (testMatch)
+import Test.Options (testOptions)
 import Test.Piping (testPiping)
 import Test.Replace (testReplace)
 import Test.Spacing (testInsertSpacing)
@@ -28,6 +29,7 @@ main = do
     testHTML
     testContextless
     testMatch
+    testOptions
     testInsertSpacing
     testWrap
     testReplace

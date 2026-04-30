@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Nothing yet._
 
+## [0.2.0-rc.1] - 2026-04-30
+
+### Added
+
+- `defaultOptions` and `contextlessOptions` are now exported from the JavaScript / TypeScript surface (both `'hyperly'` and `'hyperly/fp'`). Each is a frozen `Required<Options>` record whose predicates are uncurried `(node: Node) => boolean` — the JS-facing shape, not the curried PS-facing shape used internally. The recommended use case is composing on top of the defaults rather than reimplementing them:
+
+  ```ts
+  import { defaultOptions, replace } from 'hyperly'
+
+  const isContextElementHan: Options['isContextElement'] = (node) =>
+    defaultOptions.isContextElement(node) && hanCssExtraCheck(node)
+
+  replace({ isContextElement: isContextElementHan }, /…/g, '…', root)
+  ```
+
+  Both records are `Object.freeze`d, so reassigning a predicate (`defaultOptions.ignore = …`) throws in strict mode. The PureScript-side `Data.Hyperly.Options.defaultOptions` / `contextlessOptions` are unchanged — the JS exports are uncurried views over the same source-of-truth lists.
+
 ## [0.1.0] - 2026-04-27
 
 Initial public release. The library has been under development for years; this version codifies the public API surface for both PureScript and JavaScript / TypeScript consumers.
