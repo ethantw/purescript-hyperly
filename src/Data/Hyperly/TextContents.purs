@@ -5,7 +5,7 @@ import Prelude
 import Data.Array (snoc)
 
 import Data.Hyperly.DOM
-  (advanceWithinRange, elementToNode, isTextNode, textContent) as DOM
+  (advanceWithinRange, elementToNode, isTextNode, nodeToElement, textContent) as DOM
 import Data.Hyperly.Options (Options)
 
 import Data.Maybe (Maybe(..))
@@ -109,7 +109,7 @@ textContentsByContext options range =
             go done cur =<< DOM.firstChild atNode
 
         _ ->
-          DOM.textContent atNode >>= \tc ->
+          ignoreAwareTextContent ignore atNode >>= \tc ->
           advance atNode >>= \maybeAdvanced ->
           isContextElement atNode >>= case _ of
           -- D-1. Context element with no inner context elements: close the
@@ -132,3 +132,42 @@ textContentsByContext options range =
           --      its text content to the current context.
           _ ->
             go done (addText tc cur) maybeAdvanced
+
+-- | Concatenate text content of a subtree, but **skip subtrees where `ignore`
+-- | returns true**. Used by `textContentsByContext`'s D branch (`atNode` has
+-- | no inner context elements), where the previous `DOM.textContent atNode`
+-- | shortcut would otherwise leak text from ignored descendants — most
+-- | visibly when a custom `ignore` predicate matches an element that is not
+-- | also in `contextElements` (e.g. `<span class="skip">`).
+-- |
+-- | Caller's invariant: `atNode` is an element-like Node whose subtree
+-- | contains **no inner context-establishing elements** (this function would
+-- | otherwise need to track context boundaries; it does not). Empty subtrees
+-- | yield `""`.
+ignoreAwareTextContent
+  :: (Node -> Effect Boolean) -> Node -> Effect String
+ignoreAwareTextContent ignore atNode =
+  DOM.firstChild atNode >>= case _ of
+    Nothing -> pure ""
+    Just first -> go "" first
+  where
+  -- The original `atNode` (coerced to Element) bounds the walk: when
+  -- `advanceWithinRange` reaches it again, we stop, never escaping into
+  -- siblings of the caller's node.
+  range = DOM.nodeToElement atNode
+
+  go :: String -> Node -> Effect String
+  go acc node = ignore node >>= case _ of
+    true ->
+      DOM.advanceWithinRange range node >>= step acc
+    _ ->
+      if DOM.isTextNode node
+      then DOM.textContent node >>= \tc ->
+           DOM.advanceWithinRange range node >>= step (acc <> tc)
+      else DOM.firstChild node >>= case _ of
+        Just fc -> go acc fc
+        _ -> DOM.advanceWithinRange range node >>= step acc
+
+  step :: String -> Maybe Node -> Effect String
+  step acc Nothing  = pure acc
+  step acc (Just n) = go acc n

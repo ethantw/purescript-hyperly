@@ -650,3 +650,68 @@ describe('defaultOptions — idempotent merge', () => {
     )
   })
 })
+
+// ── Custom ignore: D branch leak (regression test for 0.2.0-rc.2 fix) ────────
+//
+// Before the fix, `textContentsByContext`'s D branch (parent has no inner
+// context-establishing children) used `Element.textContent` directly, which
+// includes text from descendants regardless of `ignore`. Custom predicates
+// that match elements NOT already in `contextElements` (e.g. <span class=
+// "skip">) would have their text leak into the regex's input string. The
+// portion-builder in turn DOES respect `ignore`, so the regex's match
+// indices would slide onto the next visible text node — a wrong fire on
+// adjacent content.
+//
+// This test mirrors the original repro: <span class="skip"> wrapping
+// "SKIPPED" inside a <p>, custom ignore composed on top of defaultOptions.
+
+describe('custom ignore: D branch leak (regression)', () => {
+  const skipClass: Required<Options>['ignore'] = (n) =>
+    defaultOptions.ignore(n) ||
+    (n.nodeType === 1 && (n as Element).classList?.contains('skip'))
+
+  const src = '<p>before<span class="skip">SKIPPED</span>after</p>'
+
+  it('match: 0 hits for /SKIPPED/', () => {
+    const ms = match({ ignore: skipClass }, /SKIPPED/g, src)
+    assert.equal(ms.length, 0, 'SKIPPED is inside an ignored subtree')
+  })
+
+  it('replace: source unchanged (no spurious fire on adjacent text)', () => {
+    assert.equal(
+      html(replace({ ignore: skipClass }, /SKIPPED/g, 'X', src)),
+      src,
+    )
+  })
+
+  it('transform: transformer never fires', () => {
+    let fired = 0
+    transform(
+      { ignore: skipClass },
+      /SKIPPED/g,
+      sp => _m => { fired += 1; return sp.text },
+      src,
+    )
+    assert.equal(fired, 0, 'transformer must not fire on ignored content')
+  })
+
+  it('without the custom ignore: SKIPPED is matched (control)', () => {
+    // Sanity check — the bug is specifically about CUSTOM ignore. With the
+    // bare default (which doesn't recognise .skip), the match should land
+    // normally on SKIPPED. This pins the contrast.
+    const ms = match(/SKIPPED/g, src)
+    assert.equal(ms.length, 1)
+    assert.equal(ms[0].captures[0], 'SKIPPED')
+  })
+
+  it('matches /beforeafter/ across the bridged gap (positive: bridge is clean)', () => {
+    // The other tests confirm "SKIPPED is gone" (negative). This one confirms
+    // the joined context string is *exactly* "beforeafter" with no artifact
+    // in place of the ignored span — a buggy implementation that leaves a
+    // stray separator would still pass the SKIPPED-is-gone tests but fail
+    // this one.
+    const ms = match({ ignore: skipClass }, /beforeafter/gi, src)
+    assert.equal(ms.length, 1, 'the ignored subtree should be invisible to the regex')
+    assert.equal(ms[0].captures[0], 'beforeafter')
+  })
+})

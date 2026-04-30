@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Nothing yet._
 
+## [0.2.0-rc.2] - 2026-04-30
+
+### Fixed
+
+- **Custom `ignore` predicate could leak text from ignored subtrees into the regex's match input.** When the parent of an ignored element had no inner context-establishing children (i.e., the algorithm took the D branch in `Data.Hyperly.TextContents.textContentsByContext`), the previous `Element.textContent` shortcut concatenated text from every Text descendant — including those inside the ignored subtree. The portion-builder downstream DOES respect `ignore`, so the regex's match indices would slide onto the next visible text node, firing the transformer on adjacent content rather than the targeted (and supposedly-hidden) range. The fix introduces an internal `ignoreAwareTextContent` walker that descends the subtree skipping ignored branches, used in place of the textContent shortcut. Default `ignore` is unaffected (every default-ignored element with non-empty text content was already in `contextElements`, forcing the C-branch descent path which always honoured `ignore`); the bug only surfaced for custom `ignore` predicates targeting elements outside `contextElements` — a scenario unlocked for JS users by 0.2.0-rc.1's `defaultOptions` export and the composition pattern in the README.
+
+### Tests
+
+- Six new PS test cases under `Test.Options` covering: D-branch leak repro, C-branch regression, default `<script>`/`<style>` regression, custom `isComment` ignore (consistency cross-check). Four new JS test cases under `custom ignore: D branch leak (regression)` covering the same surface plus a `without the custom ignore` control.
+
 ## [0.2.0-rc.1] - 2026-04-30
 
 ### Added
