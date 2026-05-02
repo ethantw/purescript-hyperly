@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Nothing yet._
 
+## [0.2.0-rc.3] - 2026-05-02
+
+### Changed
+
+- **Public types are now standard module exports instead of ambient globals.** Previously `Hype`, `Hyperly`, `Options`, `Match`, `SourcePortion`, `Target`, and `Insertion` were declared inside `declare global { … }` blocks across `js/*.d.ts`, polluting downstream consumers' global namespace and risking collisions on generic names like `Options`. They are now exported from `'hyperly'` and `'hyperly/fp'` and must be imported explicitly:
+
+  ```ts
+  import type { Options, Match } from 'hyperly'
+  ```
+
+  **Breaking for type consumers** who relied on the ambient form (`const o: Options = {}` without an import); the fix is mechanical, and TypeScript's error message names the missing identifier. No runtime behaviour change.
+
+- **Previously file-local aliases `HTMLType`, `Wrapper`, and `Transformer` are now also `export`ed.** `Wrapper` and `Transformer` were already de-facto importable from `'hyperly/fp'` because TypeScript treats top-level type declarations in `.d.ts` modules as accessible to importers even without an `export` keyword — the new declarations make name and reality consistent, which lets tools like `eslint-plugin-import` and IDE refactors recognise the boundary correctly. `HTMLType` from `'hyperly/fp'` is genuinely new: it was not reachable from the curried subpath before because no `js/fp/*.d.ts` file declared it.
+
+### Fixed
+
+- **`insertContextlessly` with `Around Outer` (and the `End`/`Both`/`Between Outer` constructors) now correctly pushes `start`/`end` brackets to the enclosing element boundary in cross-portion matches.** Previously, `Insert.purs:untilInsertable` stopped its walk-up at the empty text-node placeholders that `Transformer.purs` injects for every start/end portion (`slice 0 indexInNode nodeText` is `""` when the match begins at the start of its text node). In contextful mode the default `ignore` predicate skipped these placeholders transparently; in contextless mode `ignore = const false` treated them as real content, trapping brackets inside the portion's parent. The fix short-circuits the walk-up on `DOM.isEmptyTextNode` regardless of the `ignore` predicate — empty text nodes carry no user-visible content and are commonly synthetic, so transparency is a property of the DOM, not of the user's options. Contextful behaviour is unchanged; contextless `Around Outer` now matches contextful behaviour for non-context elements (`<p>a</p><p>b</p>` → `[<p>a</p>|<p>b</p>]`; `<a>a</a><b>b</b>` → `[<a>a</a>|<b>b</b>]`).
+
+### Tests
+
+- **Strengthened the `*Contextlessly` test suite to actually exercise the contextless escape hatch.** The prior fixtures (`<p>ab</p><p>cd</p>` + `/a|b/` for PS wrap/transform; `<b>ab</b>c` + `/[a-z]{3}/` for TS match/replace/transform/wrap) didn't span block-level context boundaries — `<b>` is inline and `/a|b/` is single-character, so contextful mode would also match. The fixtures are now `<p>a</p><p>b</p>` + `/ab/`, where contextful match yields zero hits and contextless tree-flattening is the only thing that makes the regex fire.
+
+- **`insertContextlessly` now has both `Around Inner` and `Around Outer` cross-boundary cases in PS and TS.** Inner places brackets directly in the portion's text flow (no walk-up); Outer reaches the enclosing boundary via the walk-up fix above.
+
+- **Text-level inline-element fixtures added in parallel** (`<a>a</a><b>b</b>` for every `*Contextlessly` operation in both PS and TS). Inline elements aren't context boundaries, so contextful and contextless are expected to behave identically — these cases pin parity, ensuring contextless mode introduces no surprises for non-boundary elements.
+
 ## [0.2.0-rc.2] - 2026-04-30
 
 ### Fixed
