@@ -46,6 +46,7 @@ export const forBench = {
   entryPoints: [
     'src/Demo/benchmark/findAndReplaceDOMText.js',
     'src/Demo/benchmark/dom.js',
+    'src/Demo/benchmark/treewalker-spike.js',
   ],
   outdir: 'src/Demo/public/static',
 }
