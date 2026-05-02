@@ -13,6 +13,7 @@ import Data.Hyperly.DOM
   ( getDocumentByNode
   , insertAfterEnd
   , insertBeforeStart
+  , isEmptyTextNode
   , isSameAs
   , replaceWith
   , textToNode
@@ -160,18 +161,28 @@ insertAroundPortion
       After -> DOM.nextSibling n
     )
     >>= case _ of
-    Just sibling ->
-      ignore sibling
-      >>= case _ of
-        true ->
-          isContextElement sibling
-          >>= case _ of
+    Just sibling -> do
+      -- Empty text nodes are transparent for walk-up purposes — they carry
+      -- no user-visible content and `Transformer.purs` injects one as a
+      -- preceding/following placeholder for every start/end portion (even
+      -- when the slice is empty). Without this skip, contextless mode
+      -- (where `ignore = const false`) would stop at the placeholder and
+      -- block `Around Outer` from reaching the enclosing element boundary.
+      emptyText <- DOM.isEmptyTextNode sibling
+      if emptyText
+      then untilInsertable p sibling
+      else
+        ignore sibling
+        >>= case _ of
           true ->
-            pure $ Just n
+            isContextElement sibling
+            >>= case _ of
+            true ->
+              pure $ Just n
+            _ ->
+              untilInsertable p sibling
           _ ->
-            untilInsertable p sibling
-        _ ->
-          pure $ Just n
+            pure $ Just n
 
     _ ->
       DOM.parentNode n
