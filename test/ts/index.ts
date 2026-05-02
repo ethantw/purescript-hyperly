@@ -8,6 +8,7 @@ import {
   html, element,
   textContents, contextlessTextContents,
 } from '#hyperly/hyperly.js'
+import type { Options } from '#hyperly/hyperly.js'
 import { match, matchContextlessly } from '#hyperly/match.js'
 import { replace, replaceContextlessly } from '#hyperly/replace.js'
 import { transform, transformContextlessly } from '#hyperly/transform.js'
