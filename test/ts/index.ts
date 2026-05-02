@@ -61,10 +61,20 @@ describe('match (uncurried)', () => {
     assert.equal(match({}, /\b([a-z])([a-z])\b/gi, '<b>ab</b> BC').length, 2)
   })
 
-  it('matchContextlessly matches across elements', () => {
-    const matches = matchContextlessly(/\b([a-z])([a-z])([a-z])\b/gi, '<b>ab</b>c')
+  it('matchContextlessly across block boundaries', () => {
+    // Contextful: /ab/ can't span the <p> seam → 0 matches.
+    // Contextless: tree is flattened to "ab" → 1 match.
+    assert.equal(match(/ab/g, '<p>a</p><p>b</p>').length, 0)
+    const matches = matchContextlessly(/ab/g, '<p>a</p><p>b</p>')
     assert.equal(matches.length, 1)
-    assert.equal(matches[0].captures[0], 'abc')
+    assert.equal(matches[0].captures[0], 'ab')
+  })
+
+  it('matchContextlessly with text-level inline elements (parity)', () => {
+    // <a>/<b> aren't context boundaries — both modes match. This pins that
+    // contextless mode doesn't introduce surprises for inline elements.
+    assert.equal(match(/ab/g, '<a>a</a><b>b</b>').length, 1)
+    assert.equal(matchContextlessly(/ab/g, '<a>a</a><b>b</b>').length, 1)
   })
 
   it('returns empty array when no matches', () => {
@@ -100,10 +110,21 @@ describe('replace (uncurried)', () => {
     )
   })
 
-  it('replaceContextlessly across element boundaries', () => {
+  it('replaceContextlessly across block boundaries', () => {
+    // Replacement is sliced across portions in proportion to original length:
+    // 'a' (1 char) → 'X', 'b' (1 char) → 'Y'.
     assert.equal(
-      html(replaceContextlessly(/\b([a-z])([a-z])([a-z])\b/gi, '___', '<b>ab</b>c')),
-      '<b>__</b>_',
+      html(replaceContextlessly(/ab/g, 'XY', '<p>a</p><p>b</p>')),
+      '<p>X</p><p>Y</p>',
+    )
+  })
+
+  it('replaceContextlessly with text-level inline elements', () => {
+    // Same per-portion slicing across <a>/<b> — non-context elements behave
+    // identically to the block-level case.
+    assert.equal(
+      html(replaceContextlessly(/ab/g, 'XY', '<a>a</a><b>b</b>')),
+      '<a>X</a><b>Y</b>',
     )
   })
 
@@ -137,10 +158,19 @@ describe('transform (uncurried)', () => {
     assert.ok(typeof portions[0].start === 'boolean')
   })
 
-  it('transformContextlessly across element boundaries', () => {
+  it('transformContextlessly across block boundaries', () => {
+    // Each portion is fed to the transformer separately and the result lands
+    // in that portion's original parent.
     assert.equal(
-      html(transformContextlessly(/\b([a-z])([a-z])([a-z])\b/gi, sp => _m => sp.text.toUpperCase(), '<b>ab</b>c')),
-      '<b>AB</b>C',
+      html(transformContextlessly(/ab/g, sp => _m => sp.text.toUpperCase(), '<p>a</p><p>b</p>')),
+      '<p>A</p><p>B</p>',
+    )
+  })
+
+  it('transformContextlessly with text-level inline elements', () => {
+    assert.equal(
+      html(transformContextlessly(/ab/g, sp => _m => sp.text.toUpperCase(), '<a>a</a><b>b</b>')),
+      '<a>A</a><b>B</b>',
     )
   })
 })
@@ -187,6 +217,47 @@ describe('insert (uncurried)', () => {
       /at least one of/,
     )
   })
+
+  // `Around Outer` walks up to the enclosing element boundary by skipping
+  // empty text-node placeholders that the portion-split injects. Without
+  // that skip (which is centralised in PS's `Insert.purs:untilInsertable`),
+  // contextless mode would stop at every placeholder and trap brackets
+  // inside the original parent.
+  //
+  // Inner places brackets directly in the portion's text flow (no walk-up),
+  // so Inner and Outer differ in both `start`/`end` (adjacent vs. boundary)
+  // and `between` (end of previous portion's container vs. inter-element gap).
+
+  it('insertContextlessly across block boundaries (Inner)', () => {
+    assert.equal(
+      html(insertContextlessly(/ab/g, { start: '[', between: '|', end: ']' }, '<p>a</p><p>b</p>')),
+      '<p>[a|</p><p>b]</p>',
+    )
+  })
+
+  it('insertContextlessly across block boundaries (Outer)', () => {
+    assert.equal(
+      html(insertContextlessly(/ab/g, { start: '[', between: '|', end: ']', outer: true }, '<p>a</p><p>b</p>')),
+      '[<p>a</p>|<p>b</p>]',
+    )
+  })
+
+  it('insertContextlessly with text-level inline elements (Inner)', () => {
+    // Inner brackets stay adjacent to the matched text inside the inline
+    // parents — same as the block-level case.
+    assert.equal(
+      html(insertContextlessly(/ab/g, { start: '[', between: '|', end: ']' }, '<a>a</a><b>b</b>')),
+      '<a>[a|</a><b>b]</b>',
+    )
+  })
+
+  it('insertContextlessly with text-level inline elements (Outer)', () => {
+    // Outer reaches the enclosing boundary even past inline parents.
+    assert.equal(
+      html(insertContextlessly(/ab/g, { start: '[', between: '|', end: ']', outer: true }, '<a>a</a><b>b</b>')),
+      '[<a>a</a>|<b>b</b>]',
+    )
+  })
 })
 
 describe('wrap (uncurried)', () => {
@@ -204,10 +275,20 @@ describe('wrap (uncurried)', () => {
     )
   })
 
-  it('wrap with cross-element match wraps each portion', () => {
+  it('wrapContextlessly across block boundaries', () => {
+    // Each portion of the cross-boundary match is wrapped in its original
+    // parent. Contextful wrap(/ab/) would not match — /ab/ can't span the
+    // <p> seam.
     assert.equal(
-      html(wrapContextlessly(/\b([a-z])([a-z])([a-z])\b/gi, '<mark />', '<b>ab</b>c')),
-      '<b><mark>ab</mark></b><mark>c</mark>',
+      html(wrapContextlessly(/ab/g, '<em />', '<p>a</p><p>b</p>')),
+      '<p><em>a</em></p><p><em>b</em></p>',
+    )
+  })
+
+  it('wrapContextlessly with text-level inline elements', () => {
+    assert.equal(
+      html(wrapContextlessly(/ab/g, '<em />', '<a>a</a><b>b</b>')),
+      '<a><em>a</em></a><b><em>b</em></b>',
     )
   })
 
