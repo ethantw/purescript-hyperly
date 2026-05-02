@@ -19,15 +19,7 @@ import { defaultOptions, contextlessOptions } from '#hyperly/options.js'
 
 // ── Curried / fp (mirrors the public 'hyperly/fp' subpath) ───────────────────
 
-import {
-  textContents as fpTextContents,
-  match as fpMatch,
-  replace as fpReplace,
-  transform as fpTransform,
-  insert as fpInsert,
-  wrap as fpWrap,
-  revert as fpRevert,
-} from '#hyperly/fp'
+import * as fp from '#hyperly/fp'
 
 // ── Uncurried tests ──────────────────────────────────────────────────────────
 
@@ -407,76 +399,76 @@ describe('throws on invalid source', () => {
 
 describe('fp (curried) — default', () => {
   it('textContents(src) — bare', () => {
-    assert.deepEqual(fpTextContents('<b>hello</b> <p>world</p>'), ['hello ', 'world'])
+    assert.deepEqual(fp.textContents('<b>hello</b> <p>world</p>'), ['hello ', 'world'])
   })
 
   it('match(regex)(src)', () => {
-    const matches = fpMatch(/\b([a-z])([a-z])\b/gi)('<b>ab</b> BC')
+    const matches = fp.match(/\b([a-z])([a-z])\b/gi)('<b>ab</b> BC')
     assert.equal(matches.length, 2)
     assert.equal(matches[0].captures[0], 'ab')
   })
 
   it('replace(regex)(replacement)(src)', () => {
     assert.equal(
-      html(fpReplace(/\b([a-z])([a-z])\b/gi)('_**_')('<a>A</a> <b>ab</b> BC')),
+      html(fp.replace(/\b([a-z])([a-z])\b/gi)('_**_')('<a>A</a> <b>ab</b> BC')),
       '<a>A</a> <b>_**_</b> _**_',
     )
   })
 
   it('transform(regex)(transformer)(src)', () => {
     assert.equal(
-      html(fpTransform(/\b([a-z])([a-z])\b/gi)(sp => _m => sp.text.toUpperCase())('<a>A</a> <b>ab</b> BC')),
+      html(fp.transform(/\b([a-z])([a-z])\b/gi)(sp => _m => sp.text.toUpperCase())('<a>A</a> <b>ab</b> BC')),
       '<a>A</a> <b>AB</b> BC',
     )
   })
 
   it('insert(regex)(insertion)(src)', () => {
     assert.equal(
-      html(fpInsert(/\b([a-z])([a-z])\b/gi)({ start: '[', end: ']', outer: true })('<a>a</a> <b>b</b>c abc cd')),
+      html(fp.insert(/\b([a-z])([a-z])\b/gi)({ start: '[', end: ']', outer: true })('<a>a</a> <b>b</b>c abc cd')),
       '<a>a</a> [<b>b</b>c] abc [cd]',
     )
   })
 
   it('wrap(regex)(wrapper)(src)', () => {
     assert.equal(
-      html(fpWrap(/\b\w+\b/gi)('<mark />')('<a>A</a> <b>ab</b> BC')),
+      html(fp.wrap(/\b\w+\b/gi)('<mark />')('<a>A</a> <b>ab</b> BC')),
       '<a><mark>A</mark></a> <b><mark>ab</mark></b> <mark>BC</mark>',
     )
   })
 
   it('revert', () => {
-    const h1 = fpReplace(/ab/g)('XY')('<p>ab cd</p>')
-    assert.equal(html(fpRevert(h1)), '<p>ab cd</p>')
+    const h1 = fp.replace(/ab/g)('XY')('<p>ab cd</p>')
+    assert.equal(html(fp.revert(h1)), '<p>ab cd</p>')
   })
 })
 
 describe('fp (curried) — custom options', () => {
   it('textContents(options)(src)', () => {
-    assert.deepEqual(fpTextContents({})('<b>hello</b> <p>world</p>'), ['hello ', 'world'])
+    assert.deepEqual(fp.textContents({})('<b>hello</b> <p>world</p>'), ['hello ', 'world'])
   })
 
   it('match(options)(regex)(src)', () => {
-    const matches = fpMatch({})(/\b\w+\b/gi)('<b>ab</b> cd')
+    const matches = fp.match({})(/\b\w+\b/gi)('<b>ab</b> cd')
     assert.equal(matches.length, 2)
   })
 
   it('replace(options)(regex)(replacement)(src)', () => {
     assert.equal(
-      html(fpReplace({})(/\b\w+\b/g)('X')('foo bar')),
+      html(fp.replace({})(/\b\w+\b/g)('X')('foo bar')),
       'X X',
     )
   })
 
   it('insert(options)(regex)(insertion)(src)', () => {
     assert.equal(
-      html(fpInsert({})(/\b\w+\b/g)({ start: '[', end: ']' })('foo')),
+      html(fp.insert({})(/\b\w+\b/g)({ start: '[', end: ']' })('foo')),
       '[foo]',
     )
   })
 
   it('wrap(options)(regex)(wrapper)(src)', () => {
     assert.equal(
-      html(fpWrap({})(/\b\w+\b/g)('<b />')('foo')),
+      html(fp.wrap({})(/\b\w+\b/g)('<b />')('foo')),
       '<b>foo</b>',
     )
   })
