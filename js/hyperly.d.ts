@@ -1,23 +1,6 @@
-type HTMLType = 'Outer' | 'Inner' | 'BodyOuter' | 'BodyInner'
+import type { Hyperly, Hype, Options, HTMLType } from './fp/hyperly.js'
 
-declare global {
-  export interface Hype {
-    tag: 'Hype'
-    _1: Element
-    _2: HTMLType
-    _3: Node[][]
-  }
-
-  export type Hyperly = string | Element | Hype
-
-  export interface Options {
-    ignore?: (node: Node) => boolean
-    isContextElement?: (node: Node) => boolean
-    hasContextElements?: (node: Node) => boolean
-    /** Used by `wrap` to refuse wrapping void elements like `<br>` / `<img>`. */
-    isVoidElement?: (node: Node) => boolean
-  }
-}
+export type { Hyperly, Hype, Options, HTMLType }
 
 export const hype: (src: Hyperly) => Hype
 

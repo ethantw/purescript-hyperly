@@ -1,3 +1,5 @@
+import type { Hyperly, Hype, Options } from './fp/hyperly.js'
+
 export function replace(regex: RegExp, replacement: string, src: Hyperly): Hype
 export function replace(options: Options, regex: RegExp, replacement: string, src: Hyperly): Hype
 

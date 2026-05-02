@@ -1,4 +1,6 @@
-type Wrapper = string | Element
+import type { Hyperly, Hype, Options } from './hyperly.js'
+
+export type Wrapper = string | Element
 
 export function wrap(regex: RegExp): (wrapper: Wrapper) => (src: Hyperly) => Hype
 export function wrap(options: Options): (regex: RegExp) => (wrapper: Wrapper) => (src: Hyperly) => Hype

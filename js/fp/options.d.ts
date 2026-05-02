@@ -1,3 +1,5 @@
+import type { Options } from './hyperly.js'
+
 /**
  * Default `Options` predicates in JS-facing uncurried form. The same lists
  * the un-`'`-suffixed operations apply when no `options` argument is passed,
