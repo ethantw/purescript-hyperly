@@ -31,6 +31,8 @@ example = do
     Left  e  -> error e
 ```
 
+This project's algorithm is a reference to [findAndReplaceDOMText](https://github.com/padolsey/findAndReplaceDOMText).
+
 ## Features
 
 - **Text scraping** — extract text contents from HTML elements with configurable context handling

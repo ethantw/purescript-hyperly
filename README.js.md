@@ -29,6 +29,8 @@ try {
 }
 ```
 
+This project's algorithm is a reference to [findAndReplaceDOMText](https://github.com/padolsey/findAndReplaceDOMText).
+
 ## Contents
 
 - [Features](#features)
