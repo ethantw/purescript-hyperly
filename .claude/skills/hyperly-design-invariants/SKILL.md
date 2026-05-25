@@ -155,9 +155,6 @@ Internal tests use the `imports` field:
 
 ## Things that look weird but are correct
 
-### `wrap` is a first-class function in JS too
-PureScript has `wrap`. Earlier the JS wrapper layer didn't expose it — users had to use `transform`. We deliberately added `js/wrap.js` and `js/fp/wrap.js`. Do not remove or "simplify back to transform" — it's a real ergonomic win for the most common use case.
-
 ### `Hype` retains references to detached old DOM nodes
 For `revert` to work, every replaced/wrapped/inserted node's old subtree must stay reachable. Memory cost is real (KB to MB depending on transformation count). A `commit` / `discardHistory` API to release this is a deferred design item; until it exists, do not auto-discard history.
 
